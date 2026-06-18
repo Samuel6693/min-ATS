@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabaseClient'
+import './Login.css'
 
 export function Login() {
     const { user, loading } = useAuth()
