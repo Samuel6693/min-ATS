@@ -1,6 +1,25 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { useAuth } from './auth/AuthContext'
+import { Login } from './pages/Login'
 import './App.css'
 
-function App() {
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return <main className="loading-page">Loading...</main>
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
+}
+
+function Dashboard() {
+  const { profile, role, signOut } = useAuth()
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="Main navigation">
@@ -23,10 +42,14 @@ function App() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Setup in progress</p>
+            <p className="eyebrow">
+              {role ? `${role} workspace` : 'Workspace'}
+            </p>
             <h1>Build the hiring flow from a clean base.</h1>
           </div>
-          <button type="button">Sign in</button>
+          <button type="button" onClick={signOut}>
+            Sign out
+          </button>
         </header>
 
         <section className="summary-grid" aria-label="Project status">
@@ -46,11 +69,13 @@ function App() {
 
         <section className="panel" id="dashboard">
           <div>
-            <p className="eyebrow">Next implementation step</p>
-            <h2>Auth, roles, and protected routes</h2>
+            <p className="eyebrow">Signed in</p>
+            <h2>
+              Welcome{profile?.full_name ? `, ${profile.full_name}` : ''}
+            </h2>
             <p>
-              The first real feature pass will connect Supabase Auth, load a
-              user profile, and route customers and admins into the right views.
+              Your account is connected. Next we will build the jobs,
+              candidates, and pipeline screens.
             </p>
           </div>
 
@@ -62,6 +87,22 @@ function App() {
         </section>
       </section>
     </main>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   )
 }
 
