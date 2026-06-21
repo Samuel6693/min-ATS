@@ -14,6 +14,8 @@ export function Jobs() {
     const [status, setStatus] = useState('open')
     const [submitting, setSubmitting] = useState(false)
     const [createError, setCreateError] = useState('')
+    const [updatingJobId, setUpdatingJobId] = useState(null)
+    const [actionError, setActionError] = useState('')
 
     useEffect(() => {
         async function loadJobs() {
@@ -62,6 +64,28 @@ export function Jobs() {
         setSubmitting(false)
     }
 
+    async function handleStatusChange(jobId, nextStatus) {
+        setActionError('')
+        setUpdatingJobId(jobId)
+
+        const { data, error: updateError } = await supabase
+            .from('jobs')
+            .update({ status: nextStatus })
+            .eq('id', jobId)
+            .select('id, title, description, status, created_at')
+            .single()
+
+        if (updateError) {
+            setActionError(updateError.message)
+        } else {
+            setJobs((currentJobs) =>
+                currentJobs.map((job) => (job.id === jobId ? data : job)),
+            )
+        }
+
+        setUpdatingJobId(null)
+    }
+
     return (
         <main className="jobs-page">
             <header className="jobs-header">
@@ -82,6 +106,8 @@ export function Jobs() {
                         <p>No jobs created yet.</p>
                     ) : null}
 
+                    {actionError ? <p className="form-error">{actionError}</p> : null}
+
                     <section className="jobs-list">
                         {jobs.map((job) => (
                             <article className="job-item" key={job.id}>
@@ -90,9 +116,25 @@ export function Jobs() {
                                     <p>{job.description || 'No description.'}</p>
                                 </div>
 
-                                <span className={`job-status job-status--${job.status}`}>
-                                    {job.status}
-                                </span>
+                                {role === 'customer' ? (
+                                    <select
+                                        className={`job-status-select job-status--${job.status}`}
+                                        value={job.status}
+                                        disabled={updatingJobId === job.id}
+                                        onChange={(event) =>
+                                            handleStatusChange(job.id, event.target.value)
+                                        }
+                                        aria-label={`Change status for ${job.title}`}
+                                    >
+                                        <option value="open">Open</option>
+                                        <option value="closed">Closed</option>
+                                        <option value="archived">Archived</option>
+                                    </select>
+                                ) : (
+                                    <span className={`job-status job-status--${job.status}`}>
+                                        {job.status}
+                                    </span>
+                                )}
                             </article>
                         ))}
                     </section>
