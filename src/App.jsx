@@ -3,6 +3,7 @@ import { useAuth } from './auth/AuthContext'
 import { Admin } from './pages/Admin'
 import { Dashboard } from './pages/Dashboard'
 import { Login } from './pages/Login'
+import { Jobs } from './pages/Jobs'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -23,23 +24,27 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
 
-      <Route
-        path="/"
-        element={
+      <Route path="/" element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
         }
       />
 
-      <Route
-        path="/admin"
-        element={
+      <Route path="/admin" element={
           <ProtectedRoute>
             <Admin />
           </ProtectedRoute>
         }
       />
+
+      <Route path="/jobs" element={
+        <ProtectedRoute>
+          <Jobs />
+        </ProtectedRoute>
+        }
+      />
+
     </Routes>
   )
 }

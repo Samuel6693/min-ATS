@@ -18,7 +18,7 @@ export function Dashboard() {
 
         <nav>
           <a href="#dashboard" aria-current="page">Dashboard</a>
-          <a href="#jobs">Jobs</a>
+          <Link to="/jobs">Jobs</Link>
           <a href="#candidates">Candidates</a>
           <a href="#pipeline">Pipeline</a>
           {role === 'admin' ? <Link to="/admin">Admin</Link> : null}
