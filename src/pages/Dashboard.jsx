@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import './Dashboard.css'
 
@@ -20,6 +21,7 @@ export function Dashboard() {
           <a href="#jobs">Jobs</a>
           <a href="#candidates">Candidates</a>
           <a href="#pipeline">Pipeline</a>
+          {role === 'admin' ? <Link to="/admin">Admin</Link> : null}
         </nav>
       </aside>
 
