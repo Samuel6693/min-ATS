@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.env
 *.local
 todo.md
 
@@ -23,3 +24,5 @@ todo.md
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
