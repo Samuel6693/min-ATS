@@ -475,3 +475,7 @@
     grid-template-columns: 1fr;
   }
 }
+
+.candidates-layout--single {
+  grid-template-columns: minmax(0, 1fr);
+}

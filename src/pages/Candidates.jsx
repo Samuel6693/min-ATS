@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { useWorkspace } from '../workspace/workspaceContext'
 import './Candidates.css'
 
 const APPLICATION_STAGES = [
@@ -14,7 +15,8 @@ const APPLICATION_STAGES = [
 ]
 
 export function Candidates() {
-  const { user } = useAuth()
+  const { role } = useAuth()
+  const { workspaceCustomerId, selectedCustomer } = useWorkspace()
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -41,20 +43,34 @@ export function Candidates() {
 
   useEffect(() => {
     async function loadCandidates() {
+      if (!workspaceCustomerId) {
+        setCandidates([])
+        setJobs([])
+        setApplications([])
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      setError('')
+
       const [candidatesResult, jobsResult, applicationsResult] =
         await Promise.all([
           supabase
             .from('candidates')
             .select('id, name, email, linkedin_url, cv_url, notes, created_at')
+            .eq('customer_id', workspaceCustomerId)
             .order('created_at', { ascending: false }),
           supabase
             .from('jobs')
             .select('id, title')
+            .eq('customer_id', workspaceCustomerId)
             .eq('status', 'open')
             .order('title'),
           supabase
             .from('applications')
-            .select('id, candidate_id, job_id, stage'),
+            .select('id, candidate_id, job_id, stage')
+            .eq('customer_id', workspaceCustomerId),
         ])
 
       const loadError =
@@ -72,7 +88,7 @@ export function Candidates() {
     }
 
     loadCandidates()
-  }, [])
+  }, [workspaceCustomerId])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -93,7 +109,7 @@ export function Candidates() {
     }
 
     const safeFileName = cvFile.name.replace(/[^a-zA-Z0-9._-]/g, '-')
-    const cvPath = `${user.id}/${crypto.randomUUID()}-${safeFileName}`
+    const cvPath = `${workspaceCustomerId}/${crypto.randomUUID()}-${safeFileName}`
     const { error: uploadError } = await supabase.storage
       .from('candidate-cvs')
       .upload(cvPath, cvFile, {
@@ -110,7 +126,7 @@ export function Candidates() {
     const { data, error: createError } = await supabase
       .from('candidates')
       .insert({
-        customer_id: user.id,
+        customer_id: workspaceCustomerId,
         name: form.name,
         email: form.email,
         linkedin_url: form.linkedin_url || null,
@@ -177,7 +193,7 @@ export function Candidates() {
     const { data, error: connectionError } = await supabase
       .from('applications')
       .insert({
-        customer_id: user.id,
+        customer_id: workspaceCustomerId,
         candidate_id: candidateId,
         job_id: jobId,
         stage: 'new',
@@ -255,6 +271,7 @@ export function Candidates() {
         updated_at: new Date().toISOString(),
       })
       .eq('id', candidateId)
+      .eq('customer_id', workspaceCustomerId)
       .select('id, name, email, linkedin_url, cv_url, notes, created_at')
       .single()
 
@@ -286,6 +303,7 @@ export function Candidates() {
       .from('applications')
       .delete()
       .eq('id', applicationId)
+      .eq('customer_id', workspaceCustomerId)
 
     if (disconnectError) {
       setError(disconnectError.message)
@@ -314,6 +332,7 @@ export function Candidates() {
       .from('applications')
       .delete()
       .eq('candidate_id', candidate.id)
+      .eq('customer_id', workspaceCustomerId)
 
     if (applicationsError) {
       setError(applicationsError.message)
@@ -325,6 +344,7 @@ export function Candidates() {
       .from('candidates')
       .delete()
       .eq('id', candidate.id)
+      .eq('customer_id', workspaceCustomerId)
 
     if (candidateError) {
       setError(candidateError.message)
@@ -369,6 +389,7 @@ export function Candidates() {
         updated_at: new Date().toISOString(),
       })
       .eq('id', applicationId)
+      .eq('customer_id', workspaceCustomerId)
       .select('id, candidate_id, job_id, stage')
       .single()
 
@@ -391,6 +412,9 @@ export function Candidates() {
         <div>
           <p className="eyebrow">Recruitment</p>
           <h1>Candidates</h1>
+          {role === 'admin' && selectedCustomer ? (
+            <p>Acting as {selectedCustomer.full_name || selectedCustomer.email}</p>
+          ) : null}
           <p className="candidates-intro">
             Review candidate details and open their professional documents.
           </p>
@@ -401,10 +425,19 @@ export function Candidates() {
 
       {loading ? <p className="candidates-message">Loading candidates...</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
+      {!workspaceCustomerId ? (
+        <p className="form-error">
+          Select a customer workspace from the dashboard first.
+        </p>
+      ) : null}
 
-      <div className="candidates-layout">
+      <div
+        className={`candidates-layout${
+          workspaceCustomerId ? '' : ' candidates-layout--single'
+        }`}
+      >
         <div className="candidates-content">
-          {!loading && !error && candidates.length === 0 ? (
+          {!loading && !error && workspaceCustomerId && candidates.length === 0 ? (
             <section className="candidates-empty">
               <h2>No candidates yet</h2>
               <p>Candidate profiles will appear here after they are added.</p>
@@ -610,7 +643,7 @@ export function Candidates() {
           ) : null}
         </div>
 
-        <aside className="candidate-form-panel">
+        {workspaceCustomerId ? <aside className="candidate-form-panel">
           <form className="candidate-form" onSubmit={handleSubmit}>
             <h2>Add candidate</h2>
 
@@ -660,7 +693,7 @@ export function Candidates() {
               {saving ? 'Adding...' : 'Add candidate'}
             </button>
           </form>
-        </aside>
+        </aside> : null}
       </div>
     </main>
   )
