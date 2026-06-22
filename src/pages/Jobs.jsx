@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { useWorkspace } from '../workspace/workspaceContext'
 import './Jobs.css'
 
 export function Jobs() {
     const [jobs, setJobs] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
-    const { user, role } = useAuth()
+    const { role } = useAuth()
+    const { workspaceCustomerId, selectedCustomer } = useWorkspace()
+    const canManageWorkspace = Boolean(workspaceCustomerId)
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [status, setStatus] = useState('open')
@@ -23,9 +26,19 @@ export function Jobs() {
 
     useEffect(() => {
         async function loadJobs() {
+            if (!workspaceCustomerId) {
+                setJobs([])
+                setLoading(false)
+                return
+            }
+
+            setLoading(true)
+            setError('')
+
             const { data, error: jobsError } = await supabase
                 .from('jobs')
                 .select('id, title, description, status, created_at')
+                .eq('customer_id', workspaceCustomerId)
                 .order('created_at', { ascending: false })
 
             if (jobsError) {
@@ -38,7 +51,7 @@ export function Jobs() {
         }
 
         loadJobs()
-    }, [])
+    }, [workspaceCustomerId])
     async function handleCreateJob(event) {
         event.preventDefault()
         setCreateError('')
@@ -47,7 +60,7 @@ export function Jobs() {
         const { data, error: insertError } = await supabase
             .from('jobs')
             .insert({
-                customer_id: user.id,
+                customer_id: workspaceCustomerId,
                 title: title.trim(),
                 description: description.trim() || null,
                 status,
@@ -76,6 +89,7 @@ export function Jobs() {
             .from('jobs')
             .update({ status: nextStatus })
             .eq('id', jobId)
+            .eq('customer_id', workspaceCustomerId)
             .select('id, title, description, status, created_at')
             .single()
 
@@ -115,6 +129,7 @@ export function Jobs() {
                 description: editDescription.trim() || null,
             })
             .eq('id', editingJobId)
+            .eq('customer_id', workspaceCustomerId)
             .select('id, title, description, status, created_at')
             .single()
 
@@ -137,12 +152,21 @@ export function Jobs() {
                 <div>
                     <p className="eyebrow">Recruitment</p>
                     <h1>Jobs</h1>
+                    {role === 'admin' && selectedCustomer ? (
+                        <p>Acting as {selectedCustomer.full_name || selectedCustomer.email}</p>
+                    ) : null}
                 </div>
 
                 <Link to="/">Dashboard</Link>
             </header>
 
-            <section className={`jobs-layout${role === 'customer' ? '' : ' jobs-layout--single'}`}>
+            {!workspaceCustomerId ? (
+                <p className="form-error">
+                    Select a customer workspace from the dashboard first.
+                </p>
+            ) : null}
+
+            <section className={`jobs-layout${canManageWorkspace ? '' : ' jobs-layout--single'}`}>
                 <section className="jobs-content">
                     {loading ? <p>Loading jobs...</p> : null}
                     {error ? <p className="form-error">{error}</p> : null}
@@ -192,7 +216,7 @@ export function Jobs() {
                                             <h2>{job.title}</h2>
                                             <p>{job.description || 'No description.'}</p>
 
-                                            {role === 'customer' ? (
+                                            {canManageWorkspace ? (
                                                 <button
                                                     type="button"
                                                     className="job-edit-button"
@@ -203,7 +227,7 @@ export function Jobs() {
                                             ) : null}
                                         </div>
 
-                                        {role === 'customer' ? (
+                                        {canManageWorkspace ? (
                                             <select
                                                 className={`job-status-select job-status--${job.status}`}
                                                 value={job.status}
@@ -229,7 +253,7 @@ export function Jobs() {
                     </section>
                 </section>
 
-                {role === 'customer' ? (
+                {canManageWorkspace ? (
                     <aside className="jobs-form-panel">
                         <form className="job-form" onSubmit={handleCreateJob}>
                             <h2>Create job</h2>
