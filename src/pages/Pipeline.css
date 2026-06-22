@@ -83,7 +83,10 @@
   grid-template-columns: repeat(6, minmax(230px, 1fr));
   gap: 12px;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
   padding-bottom: 16px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
 }
 
 .pipeline-column {
@@ -92,6 +95,7 @@
   border-radius: 8px 8px 0 0;
   padding: 14px;
   background: #eef3f8;
+  scroll-snap-align: start;
   transition: background 160ms ease, box-shadow 160ms ease;
 }
 
@@ -294,6 +298,17 @@
 
   .pipeline-board {
     grid-template-columns: repeat(6, minmax(210px, 1fr));
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+
+  .pipeline-column {
+    min-height: 440px;
+  }
+
+  .pipeline-card {
+    padding: 12px;
   }
 
   .pipeline-toolbar {
