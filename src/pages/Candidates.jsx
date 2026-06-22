@@ -15,20 +15,40 @@ export function Candidates() {
   const [cvFile, setCvFile] = useState(null)
   const [saving, setSaving] = useState(false)
   const [candidates, setCandidates] = useState([])
+  const [jobs, setJobs] = useState([])
+  const [applications, setApplications] = useState([])
+  const [selectedJobs, setSelectedJobs] = useState({})
+  const [connectingCandidate, setConnectingCandidate] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     async function loadCandidates() {
-      const { data, error: candidatesError } = await supabase
-        .from('candidates')
-        .select('id, name, email, linkedin_url, cv_url, notes, created_at')
-        .order('created_at', { ascending: false })
+      const [candidatesResult, jobsResult, applicationsResult] =
+        await Promise.all([
+          supabase
+            .from('candidates')
+            .select('id, name, email, linkedin_url, cv_url, notes, created_at')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('jobs')
+            .select('id, title')
+            .eq('status', 'open')
+            .order('title'),
+          supabase
+            .from('applications')
+            .select('id, candidate_id, job_id, stage'),
+        ])
 
-      if (candidatesError) {
-        setError(candidatesError.message)
+      const loadError =
+        candidatesResult.error || jobsResult.error || applicationsResult.error
+
+      if (loadError) {
+        setError(loadError.message)
       } else {
-        setCandidates(data)
+        setCandidates(candidatesResult.data)
+        setJobs(jobsResult.data)
+        setApplications(applicationsResult.data)
       }
 
       setLoading(false)
@@ -126,6 +146,59 @@ export function Candidates() {
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
   }
 
+  async function handleConnect(candidateId) {
+    const jobId = selectedJobs[candidateId]
+
+    if (!jobId) {
+      setError('Choose a job first.')
+      return
+    }
+
+    setConnectingCandidate(candidateId)
+    setError('')
+
+    const { data, error: connectionError } = await supabase
+      .from('applications')
+      .insert({
+        customer_id: user.id,
+        candidate_id: candidateId,
+        job_id: jobId,
+        stage: 'new',
+      })
+      .select('id, candidate_id, job_id, stage')
+      .single()
+
+    if (connectionError) {
+      setError(connectionError.message)
+    } else {
+      setApplications((current) => [...current, data])
+      setSelectedJobs((current) => ({
+        ...current,
+        [candidateId]: '',
+      }))
+    }
+
+    setConnectingCandidate(null)
+  }
+
+  function getCandidateApplications(candidateId) {
+    return applications.filter(
+      (application) => application.candidate_id === candidateId,
+    )
+  }
+
+  function getAvailableJobs(candidateId) {
+    const connectedJobIds = getCandidateApplications(candidateId).map(
+      (application) => application.job_id,
+    )
+
+    return jobs.filter((job) => !connectedJobIds.includes(job.id))
+  }
+
+  function getJobTitle(jobId) {
+    return jobs.find((job) => job.id === jobId)?.title ?? 'Unknown job'
+  }
+
   return (
     <main className="candidates-page">
       <header className="candidates-header">
@@ -181,6 +254,59 @@ export function Candidates() {
                       </button>
                     ) : null}
                   </div>
+                  
+                  <div className="candidate-applications">
+                    <h3>Connected jobs</h3>
+
+                    {getCandidateApplications(candidate.id).length === 0 ? (
+                      <p>Not connected to a job yet.</p>
+                    ) : (
+                      <ul>
+                        {getCandidateApplications(candidate.id).map((application) => (
+                          <li key={application.id}>
+                            <span>{getJobTitle(application.job_id)}</span>
+                            <strong>{application.stage}</strong>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {getAvailableJobs(candidate.id).length > 0 ? (
+                      <div className="candidate-connect">
+                        <select
+                          value={selectedJobs[candidate.id] ?? ''}
+                          onChange={(event) =>
+                            setSelectedJobs((current) => ({
+                              ...current,
+                              [candidate.id]: event.target.value,
+                            }))
+                          }
+                          aria-label={`Choose job for ${candidate.name}`}
+                        >
+                          <option value="">Choose job</option>
+
+                          {getAvailableJobs(candidate.id).map((job) => (
+                            <option key={job.id} value={job.id}>
+                              {job.title}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={() => handleConnect(candidate.id)}
+                          disabled={connectingCandidate === candidate.id}
+                        >
+                          {connectingCandidate === candidate.id
+                            ? 'Connecting...'
+                            : 'Connect'}
+                        </button>
+                      </div>
+                    ) : (
+                      <p>All open jobs are already connected.</p>
+                    )}
+                  </div>
+
                 </article>
               ))}
             </section>

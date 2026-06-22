@@ -229,6 +229,78 @@
   font-weight: 700;
 }
 
+.candidate-applications {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.candidate-applications h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.candidate-applications p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.candidate-applications ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.candidate-applications li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #f0f9ff;
+}
+
+.candidate-applications strong {
+  color: #075985;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.candidate-connect {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.candidate-connect select {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  font: inherit;
+}
+
+.candidate-connect button {
+  min-height: 40px;
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 700;
+}
+
+.candidate-connect button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 @media (max-width: 900px) {
   .candidates-layout {
     grid-template-columns: 1fr;
