@@ -20,7 +20,7 @@ export function Dashboard() {
           <a href="#dashboard" aria-current="page">Dashboard</a>
           <Link to="/jobs">Jobs</Link>
           <Link to="/candidates">Candidates</Link>
-          <a href="#pipeline">Pipeline</a>
+          <Link to="/pipeline">Pipeline</Link>
           {role === 'admin' ? <Link to="/admin">Admin</Link> : null}
         </nav>
       </aside>
