@@ -19,6 +19,14 @@ export function Candidates() {
   const [applications, setApplications] = useState([])
   const [selectedJobs, setSelectedJobs] = useState({})
   const [connectingCandidate, setConnectingCandidate] = useState(null)
+  const [editingCandidate, setEditingCandidate] = useState(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    linkedin_url: '',
+    notes: '',
+  })
+  const [candidateAction, setCandidateAction] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -199,6 +207,147 @@ export function Candidates() {
     return jobs.find((job) => job.id === jobId)?.title ?? 'Unknown job'
   }
 
+  function startEditing(candidate) {
+    setEditingCandidate(candidate.id)
+    setEditForm({
+      name: candidate.name,
+      email: candidate.email,
+      linkedin_url: candidate.linkedin_url ?? '',
+      notes: candidate.notes ?? '',
+    })
+    setError('')
+  }
+
+  function cancelEditing() {
+    setEditingCandidate(null)
+  }
+
+  function handleEditChange(event) {
+    const { name, value } = event.target
+
+    setEditForm((current) => ({
+      ...current,
+      [name]: value,
+    }))
+  }
+
+  async function handleUpdateCandidate(event, candidateId) {
+    event.preventDefault()
+    setCandidateAction(`update-${candidateId}`)
+    setError('')
+
+    const { data, error: updateError } = await supabase
+      .from('candidates')
+      .update({
+        name: editForm.name,
+        email: editForm.email,
+        linkedin_url: editForm.linkedin_url || null,
+        notes: editForm.notes || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', candidateId)
+      .select('id, name, email, linkedin_url, cv_url, notes, created_at')
+      .single()
+
+    if (updateError) {
+      setError(updateError.message)
+    } else {
+      setCandidates((current) =>
+        current.map((candidate) =>
+          candidate.id === candidateId ? data : candidate,
+        ),
+      )
+      setEditingCandidate(null)
+    }
+
+    setCandidateAction(null)
+  }
+
+  async function handleDisconnect(applicationId) {
+    const confirmed = window.confirm(
+      'Remove this candidate from the job?',
+    )
+
+    if (!confirmed) return
+
+    setCandidateAction(`disconnect-${applicationId}`)
+    setError('')
+
+    const { error: disconnectError } = await supabase
+      .from('applications')
+      .delete()
+      .eq('id', applicationId)
+
+    if (disconnectError) {
+      setError(disconnectError.message)
+    } else {
+      setApplications((current) =>
+        current.filter(
+          (application) => application.id !== applicationId,
+        ),
+      )
+    }
+
+    setCandidateAction(null)
+  }
+
+  async function handleDeleteCandidate(candidate) {
+    const confirmed = window.confirm(
+      `Delete ${candidate.name} and all job connections?`,
+    )
+
+    if (!confirmed) return
+
+    setCandidateAction(`delete-${candidate.id}`)
+    setError('')
+
+    const { error: applicationsError } = await supabase
+      .from('applications')
+      .delete()
+      .eq('candidate_id', candidate.id)
+
+    if (applicationsError) {
+      setError(applicationsError.message)
+      setCandidateAction(null)
+      return
+    }
+
+    const { error: candidateError } = await supabase
+      .from('candidates')
+      .delete()
+      .eq('id', candidate.id)
+
+    if (candidateError) {
+      setError(candidateError.message)
+      setCandidateAction(null)
+      return
+    }
+
+    if (
+      candidate.cv_url &&
+      !candidate.cv_url.startsWith('http://') &&
+      !candidate.cv_url.startsWith('https://')
+    ) {
+      const { error: storageError } = await supabase.storage
+        .from('candidate-cvs')
+        .remove([candidate.cv_url])
+
+      if (storageError) {
+        setError(`Candidate deleted, but CV cleanup failed: ${storageError.message}`)
+      }
+    }
+
+    setCandidates((current) =>
+      current.filter((item) => item.id !== candidate.id),
+    )
+    setApplications((current) =>
+      current.filter(
+        (application) => application.candidate_id !== candidate.id,
+      ),
+    )
+    setEditingCandidate(null)
+    setCandidateAction(null)
+  }
   return (
     <main className="candidates-page">
       <header className="candidates-header">
@@ -253,8 +402,90 @@ export function Candidates() {
                         View CV
                       </button>
                     ) : null}
+                    <button
+                      type="button"
+                      className="candidate-edit-button"
+                      onClick={() => startEditing(candidate)}
+                      disabled={candidateAction !== null}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="candidate-delete-button"
+                      onClick={() => handleDeleteCandidate(candidate)}
+                      disabled={candidateAction !== null}
+                    >
+                      {candidateAction === `delete-${candidate.id}`
+                        ? 'Deleting...'
+                        : 'Delete'}
+                    </button>
                   </div>
-                  
+                  {editingCandidate === candidate.id ? (
+                    <form
+                      className="candidate-edit-form"
+                      onSubmit={(event) =>
+                        handleUpdateCandidate(event, candidate.id)
+                      }
+                    >
+                      <label>
+                        Name
+                        <input
+                          name="name"
+                          value={editForm.name}
+                          onChange={handleEditChange}
+                          required
+                        />
+                      </label>
+
+                      <label>
+                        Email
+                        <input
+                          type="email"
+                          name="email"
+                          value={editForm.email}
+                          onChange={handleEditChange}
+                          required
+                        />
+                      </label>
+
+                      <label>
+                        LinkedIn URL
+                        <input
+                          type="url"
+                          name="linkedin_url"
+                          value={editForm.linkedin_url}
+                          onChange={handleEditChange}
+                        />
+                      </label>
+
+                      <label>
+                        Notes
+                        <textarea
+                          name="notes"
+                          value={editForm.notes}
+                          onChange={handleEditChange}
+                        />
+                      </label>
+
+                      <div className="candidate-edit-actions">
+                        <button
+                          type="submit"
+                          disabled={candidateAction === `update-${candidate.id}`}
+                        >
+                          {candidateAction === `update-${candidate.id}`
+                            ? 'Saving...'
+                            : 'Save'}
+                        </button>
+
+                        <button type="button" onClick={cancelEditing}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+
                   <div className="candidate-applications">
                     <h3>Connected jobs</h3>
 
@@ -264,8 +495,23 @@ export function Candidates() {
                       <ul>
                         {getCandidateApplications(candidate.id).map((application) => (
                           <li key={application.id}>
-                            <span>{getJobTitle(application.job_id)}</span>
-                            <strong>{application.stage}</strong>
+                            <div className="candidate-application-info">
+                              <span>{getJobTitle(application.job_id)}</span>
+                              <strong>{application.stage}</strong>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="candidate-disconnect-button"
+                              onClick={() => handleDisconnect(application.id)}
+                              disabled={
+                                candidateAction === `disconnect-${application.id}`
+                              }
+                            >
+                              {candidateAction === `disconnect-${application.id}`
+                                ? 'Removing...'
+                                : 'Remove'}
+                            </button>
                           </li>
                         ))}
                       </ul>
