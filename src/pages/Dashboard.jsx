@@ -1,9 +1,18 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { useWorkspace } from '../workspace/workspaceContext'
 import './Dashboard.css'
 
 export function Dashboard() {
   const { profile, role, signOut } = useAuth()
+  const {
+    customers,
+    selectedCustomer,
+    selectedCustomerId,
+    selectCustomer,
+    loading: workspaceLoading,
+    error: workspaceError,
+  } = useWorkspace()
 
   return (
     <main className="app-shell">
@@ -23,13 +32,37 @@ export function Dashboard() {
           <Link to="/pipeline">Pipeline</Link>
           {role === 'admin' ? <Link to="/admin">Admin</Link> : null}
         </nav>
+
+        {role === 'admin' ? (
+          <div className="workspace-switcher">
+            <label htmlFor="customer-workspace">Customer workspace</label>
+            <select
+              id="customer-workspace"
+              value={selectedCustomerId ?? ''}
+              onChange={(event) => selectCustomer(event.target.value)}
+              disabled={workspaceLoading}
+            >
+              <option value="">Select customer</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.full_name || customer.email}
+                </option>
+              ))}
+            </select>
+            {workspaceError ? <p>{workspaceError}</p> : null}
+          </div>
+        ) : null}
       </aside>
 
       <section className="workspace">
         <header className="topbar">
           <div>
             <p className="eyebrow">
-              {role ? `${role} workspace` : 'Workspace'}
+              {selectedCustomer
+                ? `${selectedCustomer.full_name || selectedCustomer.email} workspace`
+                : role
+                  ? `${role} workspace`
+                  : 'Workspace'}
             </p>
             <h1>Build the hiring flow from a clean base.</h1>
           </div>

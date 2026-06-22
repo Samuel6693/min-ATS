@@ -63,6 +63,37 @@ nav a:hover {
   color: var(--text-strong);
 }
 
+.workspace-switcher {
+  display: grid;
+  gap: 7px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.workspace-switcher label {
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workspace-switcher select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 28px 8px 10px;
+  color: var(--text-strong);
+  background: #fff;
+  font: inherit;
+}
+
+.workspace-switcher p {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
 .workspace {
   flex: 1;
   padding: 32px;
