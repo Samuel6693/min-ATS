@@ -20,6 +20,7 @@ export function Pipeline() {
   const [draggingApplication, setDraggingApplication] = useState(null)
   const [dragOverStage, setDragOverStage] = useState(null)
   const [jobFilter, setJobFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -65,11 +66,22 @@ export function Pipeline() {
     return jobs.find((job) => job.id === jobId)
   }
 
-  function getStageApplications(stage) {
+  function getFilteredApplications() {
+    const normalizedSearch = searchQuery.trim().toLowerCase()
+
     return applications.filter(
       (application) =>
-        application.stage === stage &&
-        (jobFilter === 'all' || application.job_id === jobFilter),
+        (jobFilter === 'all' || application.job_id === jobFilter) &&
+        (!normalizedSearch ||
+          getCandidate(application.candidate_id)
+            ?.name.toLowerCase()
+            .includes(normalizedSearch)),
+    )
+  }
+
+  function getStageApplications(stage) {
+    return getFilteredApplications().filter(
+      (application) => application.stage === stage,
     )
   }
 
@@ -167,27 +179,35 @@ export function Pipeline() {
       {!loading && !error ? (
         <>
           <section className="pipeline-toolbar" aria-label="Pipeline filters">
-            <label>
-              Job
-              <select
-                value={jobFilter}
-                onChange={(event) => setJobFilter(event.target.value)}
-              >
-                <option value="all">All jobs</option>
-                {jobs.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {job.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="pipeline-filters">
+              <label>
+                Job
+                <select
+                  value={jobFilter}
+                  onChange={(event) => setJobFilter(event.target.value)}
+                >
+                  <option value="all">All jobs</option>
+                  {jobs.map((job) => (
+                    <option key={job.id} value={job.id}>
+                      {job.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Candidate
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search by name"
+                />
+              </label>
+            </div>
 
             <p>
-              {applications.filter(
-                (application) =>
-                  jobFilter === 'all' || application.job_id === jobFilter,
-              ).length}{' '}
-              applications
+              {getFilteredApplications().length} applications
             </p>
           </section>
 

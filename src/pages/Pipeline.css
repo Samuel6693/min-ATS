@@ -40,6 +40,13 @@
   background: var(--surface);
 }
 
+.pipeline-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .pipeline-toolbar label {
   display: grid;
   gap: 5px;
@@ -48,7 +55,8 @@
   font-weight: 700;
 }
 
-.pipeline-toolbar select {
+.pipeline-toolbar select,
+.pipeline-toolbar input {
   width: min(300px, 70vw);
   min-height: 40px;
   border: 1px solid var(--border);
@@ -57,6 +65,11 @@
   color: var(--text-strong);
   background: #fff;
   font: inherit;
+}
+
+.pipeline-toolbar input {
+  min-width: 230px;
+  padding-right: 10px;
 }
 
 .pipeline-toolbar p {
@@ -291,6 +304,15 @@
 
   .pipeline-toolbar select {
     width: 100%;
+  }
+
+  .pipeline-filters {
+    display: grid;
+  }
+
+  .pipeline-toolbar input {
+    width: 100%;
+    min-width: 0;
   }
 
   .pipeline-toolbar p {
