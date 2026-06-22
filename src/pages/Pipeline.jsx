@@ -16,6 +16,9 @@ export function Pipeline() {
   const [applications, setApplications] = useState([])
   const [candidates, setCandidates] = useState([])
   const [jobs, setJobs] = useState([])
+  const [movingApplication, setMovingApplication] = useState(null)
+  const [draggingApplication, setDraggingApplication] = useState(null)
+  const [dragOverStage, setDragOverStage] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -65,6 +68,83 @@ export function Pipeline() {
     return applications.filter((application) => application.stage === stage)
   }
 
+  async function updateApplicationStage(application, stage) {
+    if (application.stage === stage) return
+
+    const previousStage = application.stage
+    setMovingApplication(application.id)
+    setError('')
+    setApplications((current) =>
+      current.map((item) =>
+        item.id === application.id ? { ...item, stage } : item,
+      ),
+    )
+
+    const { data, error: moveError } = await supabase
+      .from('applications')
+      .update({
+        stage,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', application.id)
+      .select('id, candidate_id, job_id, stage, created_at')
+      .single()
+
+    if (moveError) {
+      setError(moveError.message)
+      setApplications((current) =>
+        current.map((item) =>
+          item.id === application.id ? { ...item, stage: previousStage } : item,
+        ),
+      )
+    } else {
+      setApplications((current) =>
+        current.map((item) => (item.id === application.id ? data : item)),
+      )
+    }
+
+    setMovingApplication(null)
+  }
+
+  function moveApplication(application, direction) {
+    const currentIndex = STAGES.findIndex(
+      (stage) => stage.value === application.stage,
+    )
+    const nextStage = STAGES[currentIndex + direction]
+
+    if (nextStage) {
+      updateApplicationStage(application, nextStage.value)
+    }
+  }
+
+  function handleDragStart(event, application) {
+    setDraggingApplication(application)
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', application.id)
+  }
+
+  function handleDragOver(event, stage) {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDragOverStage(stage)
+  }
+
+  function handleDrop(event, stage) {
+    event.preventDefault()
+
+    if (draggingApplication) {
+      updateApplicationStage(draggingApplication, stage)
+    }
+
+    setDraggingApplication(null)
+    setDragOverStage(null)
+  }
+
+  function handleDragEnd() {
+    setDraggingApplication(null)
+    setDragOverStage(null)
+  }
+
   return (
     <main className="pipeline-page">
       <header className="pipeline-header">
@@ -86,8 +166,12 @@ export function Pipeline() {
 
             return (
               <section
-                className={`pipeline-column pipeline-column--${stage.value}`}
+                className={`pipeline-column pipeline-column--${stage.value}${
+                  dragOverStage === stage.value ? ' pipeline-column--drop' : ''
+                }`}
                 key={stage.value}
+                onDragOver={(event) => handleDragOver(event, stage.value)}
+                onDrop={(event) => handleDrop(event, stage.value)}
               >
                 <header className="pipeline-column-header">
                   <h2>{stage.label}</h2>
@@ -104,7 +188,18 @@ export function Pipeline() {
                     const job = getJob(application.job_id)
 
                     return (
-                      <article className="pipeline-card" key={application.id}>
+                      <article
+                        className={`pipeline-card${
+                          draggingApplication?.id === application.id
+                            ? ' pipeline-card--dragging'
+                            : ''
+                        }`}
+                        key={application.id}
+                        draggable={movingApplication !== application.id}
+                        onDragStart={(event) => handleDragStart(event, application)}
+                        onDragEnd={handleDragEnd}
+                        title="Drag to another stage"
+                      >
                         <div className="pipeline-card-heading">
                           <span aria-hidden="true">
                             {candidate?.name?.charAt(0).toUpperCase() ?? '?'}
@@ -125,6 +220,40 @@ export function Pipeline() {
                         {candidate?.notes ? (
                           <p className="pipeline-note">{candidate.notes}</p>
                         ) : null}
+
+                        <div className="pipeline-card-actions">
+                          <button
+                            type="button"
+                            onClick={() => moveApplication(application, -1)}
+                            disabled={
+                              application.stage === STAGES[0].value ||
+                              movingApplication === application.id
+                            }
+                            aria-label={`Move ${candidate?.name ?? 'candidate'} back`}
+                            title="Move to previous stage"
+                          >
+                            &larr;
+                          </button>
+
+                          <span>
+                            {movingApplication === application.id
+                              ? 'Moving...'
+                              : stage.label}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => moveApplication(application, 1)}
+                            disabled={
+                              application.stage === STAGES.at(-1).value ||
+                              movingApplication === application.id
+                            }
+                            aria-label={`Move ${candidate?.name ?? 'candidate'} forward`}
+                            title="Move to next stage"
+                          >
+                            &rarr;
+                          </button>
+                        </div>
                       </article>
                     )
                   })}
