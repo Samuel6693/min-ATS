@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabaseClient'
+import { useWorkspace } from '../workspace/workspaceContext'
 import './Pipeline.css'
 
 const STAGES = [
@@ -13,6 +15,8 @@ const STAGES = [
 ]
 
 export function Pipeline() {
+  const { role } = useAuth()
+  const { workspaceCustomerId, selectedCustomer } = useWorkspace()
   const [applications, setApplications] = useState([])
   const [candidates, setCandidates] = useState([])
   const [jobs, setJobs] = useState([])
@@ -26,17 +30,31 @@ export function Pipeline() {
 
   useEffect(() => {
     async function loadPipeline() {
+      if (!workspaceCustomerId) {
+        setApplications([])
+        setCandidates([])
+        setJobs([])
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      setError('')
+
       const [applicationsResult, candidatesResult, jobsResult] =
         await Promise.all([
           supabase
             .from('applications')
-            .select('id, candidate_id, job_id, stage, created_at'),
+            .select('id, candidate_id, job_id, stage, created_at')
+            .eq('customer_id', workspaceCustomerId),
           supabase
             .from('candidates')
-            .select('id, name, email, notes'),
+            .select('id, name, email, notes')
+            .eq('customer_id', workspaceCustomerId),
           supabase
             .from('jobs')
-            .select('id, title'),
+            .select('id, title')
+            .eq('customer_id', workspaceCustomerId),
         ])
 
       const loadError =
@@ -56,7 +74,7 @@ export function Pipeline() {
     }
 
     loadPipeline()
-  }, [])
+  }, [workspaceCustomerId])
 
   function getCandidate(candidateId) {
     return candidates.find((candidate) => candidate.id === candidateId)
@@ -104,6 +122,7 @@ export function Pipeline() {
         updated_at: new Date().toISOString(),
       })
       .eq('id', application.id)
+      .eq('customer_id', workspaceCustomerId)
       .select('id, candidate_id, job_id, stage, created_at')
       .single()
 
@@ -168,6 +187,9 @@ export function Pipeline() {
         <div>
           <p className="eyebrow">Recruitment</p>
           <h1>Pipeline</h1>
+          {role === 'admin' && selectedCustomer ? (
+            <p>Acting as {selectedCustomer.full_name || selectedCustomer.email}</p>
+          ) : null}
         </div>
 
         <Link to="/">Dashboard</Link>
@@ -175,8 +197,13 @@ export function Pipeline() {
 
       {loading ? <p>Loading pipeline...</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
+      {!workspaceCustomerId ? (
+        <p className="form-error">
+          Select a customer workspace from the dashboard first.
+        </p>
+      ) : null}
 
-      {!loading && !error ? (
+      {!loading && !error && workspaceCustomerId ? (
         <>
           <section className="pipeline-toolbar" aria-label="Pipeline filters">
             <div className="pipeline-filters">
