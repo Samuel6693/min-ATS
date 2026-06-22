@@ -266,12 +266,6 @@
   background: #f0f9ff;
 }
 
-.candidate-applications strong {
-  color: #075985;
-  font-size: 12px;
-  text-transform: capitalize;
-}
-
 .candidate-connect {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -383,6 +377,53 @@
 .candidate-delete-button:disabled {
   cursor: wait;
   opacity: 0.6;
+}
+
+.candidate-stage {
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 5px 26px 5px 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.candidate-stage:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.candidate-stage--new {
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.candidate-stage--screening {
+  color: #115e59;
+  background: #ccfbf1;
+}
+
+.candidate-stage--interview {
+  color: #5b21b6;
+  background: #ede9fe;
+}
+
+.candidate-stage--offer {
+  color: #854d0e;
+  background: #fef9c3;
+}
+
+.candidate-stage--hired {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.candidate-stage--rejected {
+  color: #991b1b;
+  background: #fee2e2;
 }
 
 @media (max-width: 900px) {

@@ -4,6 +4,15 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import './Candidates.css'
 
+const APPLICATION_STAGES = [
+  'new',
+  'screening',
+  'interview',
+  'offer',
+  'hired',
+  'rejected',
+]
+
 export function Candidates() {
   const { user } = useAuth()
   const [form, setForm] = useState({
@@ -348,6 +357,34 @@ export function Candidates() {
     setEditingCandidate(null)
     setCandidateAction(null)
   }
+
+  async function handleStageChange(applicationId, stage) {
+    setCandidateAction(`stage-${applicationId}`)
+    setError('')
+
+    const { data, error: stageError } = await supabase
+      .from('applications')
+      .update({
+        stage,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', applicationId)
+      .select('id, candidate_id, job_id, stage')
+      .single()
+
+    if (stageError) {
+      setError(stageError.message)
+    } else {
+      setApplications((current) =>
+        current.map((application) =>
+          application.id === applicationId ? data : application,
+        ),
+      )
+    }
+
+    setCandidateAction(null)
+  }
+
   return (
     <main className="candidates-page">
       <header className="candidates-header">
@@ -497,7 +534,21 @@ export function Candidates() {
                           <li key={application.id}>
                             <div className="candidate-application-info">
                               <span>{getJobTitle(application.job_id)}</span>
-                              <strong>{application.stage}</strong>
+                              <select
+                                className={`candidate-stage candidate-stage--${application.stage}`}
+                                value={application.stage}
+                                onChange={(event) =>
+                                  handleStageChange(application.id, event.target.value)
+                                }
+                                disabled={candidateAction === `stage-${application.id}`}
+                                aria-label={`Stage for ${getJobTitle(application.job_id)}`}
+                              >
+                                {APPLICATION_STAGES.map((stage) => (
+                                  <option key={stage} value={stage}>
+                                    {stage}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
 
                             <button
