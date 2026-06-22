@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Login } from './pages/Login'
 import { Jobs } from './pages/Jobs'
 import { Candidates } from './pages/Candidates'
+import { Pipeline } from './pages/Pipeline'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -49,6 +50,13 @@ function App() {
       <Route path="/candidates" element={
         <ProtectedRoute>
           <Candidates />
+        </ProtectedRoute>
+        }
+      />
+
+      <Route path="/pipeline" element={
+        <ProtectedRoute>
+          <Pipeline />
         </ProtectedRoute>
         }
       />
