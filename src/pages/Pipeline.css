@@ -28,6 +28,43 @@
   text-decoration: none;
 }
 
+.pipeline-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.pipeline-toolbar label {
+  display: grid;
+  gap: 5px;
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pipeline-toolbar select {
+  width: min(300px, 70vw);
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 32px 8px 10px;
+  color: var(--text-strong);
+  background: #fff;
+  font: inherit;
+}
+
+.pipeline-toolbar p {
+  margin: 0 0 9px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .pipeline-board {
   display: grid;
   grid-template-columns: repeat(6, minmax(230px, 1fr));
@@ -244,5 +281,19 @@
 
   .pipeline-board {
     grid-template-columns: repeat(6, minmax(210px, 1fr));
+  }
+
+  .pipeline-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pipeline-toolbar select {
+    width: 100%;
+  }
+
+  .pipeline-toolbar p {
+    margin: 0;
   }
 }

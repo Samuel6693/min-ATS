@@ -19,6 +19,7 @@ export function Pipeline() {
   const [movingApplication, setMovingApplication] = useState(null)
   const [draggingApplication, setDraggingApplication] = useState(null)
   const [dragOverStage, setDragOverStage] = useState(null)
+  const [jobFilter, setJobFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -65,7 +66,11 @@ export function Pipeline() {
   }
 
   function getStageApplications(stage) {
-    return applications.filter((application) => application.stage === stage)
+    return applications.filter(
+      (application) =>
+        application.stage === stage &&
+        (jobFilter === 'all' || application.job_id === jobFilter),
+    )
   }
 
   async function updateApplicationStage(application, stage) {
@@ -160,19 +165,45 @@ export function Pipeline() {
       {error ? <p className="form-error">{error}</p> : null}
 
       {!loading && !error ? (
-        <section className="pipeline-board" aria-label="Candidate pipeline">
-          {STAGES.map((stage) => {
-            const stageApplications = getStageApplications(stage.value)
-
-            return (
-              <section
-                className={`pipeline-column pipeline-column--${stage.value}${
-                  dragOverStage === stage.value ? ' pipeline-column--drop' : ''
-                }`}
-                key={stage.value}
-                onDragOver={(event) => handleDragOver(event, stage.value)}
-                onDrop={(event) => handleDrop(event, stage.value)}
+        <>
+          <section className="pipeline-toolbar" aria-label="Pipeline filters">
+            <label>
+              Job
+              <select
+                value={jobFilter}
+                onChange={(event) => setJobFilter(event.target.value)}
               >
+                <option value="all">All jobs</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <p>
+              {applications.filter(
+                (application) =>
+                  jobFilter === 'all' || application.job_id === jobFilter,
+              ).length}{' '}
+              applications
+            </p>
+          </section>
+
+          <section className="pipeline-board" aria-label="Candidate pipeline">
+            {STAGES.map((stage) => {
+              const stageApplications = getStageApplications(stage.value)
+
+              return (
+                <section
+                  className={`pipeline-column pipeline-column--${stage.value}${
+                    dragOverStage === stage.value ? ' pipeline-column--drop' : ''
+                  }`}
+                  key={stage.value}
+                  onDragOver={(event) => handleDragOver(event, stage.value)}
+                  onDrop={(event) => handleDrop(event, stage.value)}
+                >
                 <header className="pipeline-column-header">
                   <h2>{stage.label}</h2>
                   <span>{stageApplications.length}</span>
@@ -258,10 +289,11 @@ export function Pipeline() {
                     )
                   })}
                 </div>
-              </section>
-            )
-          })}
-        </section>
+                </section>
+              )
+            })}
+          </section>
+        </>
       ) : null}
     </main>
   )
