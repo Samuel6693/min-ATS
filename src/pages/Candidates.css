@@ -257,9 +257,8 @@
 }
 
 .candidate-applications li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   padding: 9px 12px;
   border-radius: 8px;
@@ -373,6 +372,32 @@
   font-weight: 700;
 }
 
+.candidate-application-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.candidate-assess-button {
+  border-color: #2563eb;
+  color: #1d4ed8;
+  background: #eff6ff;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.candidate-assess-button:hover:not(:disabled) {
+  border-color: #1d4ed8;
+  color: #1e40af;
+}
+
+.candidate-assess-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .candidate-disconnect-button:disabled,
 .candidate-delete-button:disabled {
   cursor: wait;
@@ -426,6 +451,88 @@
   background: #fee2e2;
 }
 
+.candidate-assessment,
+.candidate-assessment-error {
+  grid-column: 1 / -1;
+}
+
+.candidate-assessment {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.candidate-assessment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate-assessment-header span {
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.candidate-assessment-header strong {
+  color: #0f766e;
+  font-size: 18px;
+}
+
+.candidate-assessment p {
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.candidate-assessment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.candidate-assessment h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.candidate-assessment ul {
+  gap: 6px;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.candidate-assessment li {
+  display: list-item;
+  padding: 0;
+  background: transparent;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.candidate-recommendation {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #075985;
+  background: #e0f2fe;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.candidate-assessment-error {
+  margin: 0;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 @media (max-width: 900px) {
   .candidates-layout {
     grid-template-columns: 1fr;
@@ -473,6 +580,15 @@
 
   .candidate-connect {
     grid-template-columns: 1fr;
+  }
+
+  .candidate-applications li,
+  .candidate-assessment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .candidate-application-actions {
+    justify-content: flex-start;
   }
 }
 
