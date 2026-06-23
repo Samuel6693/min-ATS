@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 import { useWorkspace } from '../workspace/workspaceContext'
 import './Dashboard.css'
 
@@ -9,10 +11,83 @@ export function Dashboard() {
     customers,
     selectedCustomer,
     selectedCustomerId,
+    workspaceCustomerId,
     selectCustomer,
     loading: workspaceLoading,
     error: workspaceError,
   } = useWorkspace()
+  const [stats, setStats] = useState({
+    openJobs: 0,
+    candidates: 0,
+    activeApplications: 0,
+  })
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [statsError, setStatsError] = useState('')
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadStats() {
+      if (!workspaceCustomerId) {
+        setStats({ openJobs: 0, candidates: 0, activeApplications: 0 })
+        setStatsError('')
+        setStatsLoading(false)
+        return
+      }
+
+      setStatsLoading(true)
+      setStatsError('')
+
+      const [jobsResult, candidatesResult, applicationsResult] =
+        await Promise.all([
+          supabase
+            .from('jobs')
+            .select('id', { count: 'exact', head: true })
+            .eq('customer_id', workspaceCustomerId)
+            .eq('status', 'open'),
+          supabase
+            .from('candidates')
+            .select('id', { count: 'exact', head: true })
+            .eq('customer_id', workspaceCustomerId),
+          supabase
+            .from('applications')
+            .select('stage')
+            .eq('customer_id', workspaceCustomerId),
+        ])
+
+      if (ignore) return
+
+      const loadError =
+        jobsResult.error || candidatesResult.error || applicationsResult.error
+
+      if (loadError) {
+        setStatsError(loadError.message)
+      } else {
+        const activeApplications = applicationsResult.data.filter(
+          (application) =>
+            application.stage !== 'hired' && application.stage !== 'rejected',
+        ).length
+
+        setStats({
+          openJobs: jobsResult.count ?? 0,
+          candidates: candidatesResult.count ?? 0,
+          activeApplications,
+        })
+      }
+
+      setStatsLoading(false)
+    }
+
+    loadStats()
+
+    return () => {
+      ignore = true
+    }
+  }, [workspaceCustomerId])
+
+  const workspaceName = selectedCustomer
+    ? selectedCustomer.full_name || selectedCustomer.email
+    : profile?.full_name || 'Your'
 
   return (
     <main className="app-shell">
@@ -64,45 +139,52 @@ export function Dashboard() {
                   ? `${role} workspace`
                   : 'Workspace'}
             </p>
-            <h1>Build the hiring flow from a clean base.</h1>
+            <h1>{workspaceName} recruitment overview</h1>
           </div>
           <button type="button" onClick={signOut}>
             Sign out
           </button>
         </header>
 
-        <section className="summary-grid" aria-label="Project status">
+        {!workspaceCustomerId ? (
+          <p className="dashboard-notice">
+            Select a customer workspace to view its recruitment overview.
+          </p>
+        ) : null}
+        {statsError ? <p className="form-error">{statsError}</p> : null}
+
+        <section className="summary-grid" aria-label="Recruitment overview">
           <article>
-            <span>1</span>
-            <p>Supabase project connected</p>
+            <span>{statsLoading ? '-' : stats.openJobs}</span>
+            <p>Open jobs</p>
           </article>
           <article>
-            <span>4</span>
-            <p>Core tables prepared</p>
+            <span>{statsLoading ? '-' : stats.candidates}</span>
+            <p>Candidates</p>
           </article>
           <article>
-            <span>0</span>
-            <p>Demo candidates loaded</p>
+            <span>{statsLoading ? '-' : stats.activeApplications}</span>
+            <p>Active applications</p>
           </article>
         </section>
 
         <section className="panel" id="dashboard">
           <div>
-            <p className="eyebrow">Signed in</p>
+            <p className="eyebrow">Workspace</p>
             <h2>
               Welcome{profile?.full_name ? `, ${profile.full_name}` : ''}
             </h2>
             <p>
-              Your account is connected. Next we will build the jobs,
-              candidates, and pipeline screens.
+              Review the current hiring activity, then continue where attention
+              is needed.
             </p>
           </div>
 
-          <ul>
-            <li>Customer login</li>
-            <li>Admin/customer profile roles</li>
-            <li>Route guards for private screens</li>
-          </ul>
+          <nav className="dashboard-actions" aria-label="Workspace actions">
+            <Link to="/jobs">Manage jobs</Link>
+            <Link to="/candidates">Manage candidates</Link>
+            <Link to="/pipeline">Open pipeline</Link>
+          </nav>
         </section>
       </section>
     </main>
