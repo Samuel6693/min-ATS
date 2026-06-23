@@ -15,7 +15,7 @@ const APPLICATION_STAGES = [
 ]
 
 export function Candidates() {
-  const { role } = useAuth()
+  const { role, session } = useAuth()
   const { workspaceCustomerId, selectedCustomer } = useWorkspace()
   const [form, setForm] = useState({
     name: '',
@@ -38,6 +38,9 @@ export function Candidates() {
     notes: '',
   })
   const [candidateAction, setCandidateAction] = useState(null)
+  const [assessments, setAssessments] = useState({})
+  const [assessmentErrors, setAssessmentErrors] = useState({})
+  const [assessingApplication, setAssessingApplication] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -63,7 +66,7 @@ export function Candidates() {
             .order('created_at', { ascending: false }),
           supabase
             .from('jobs')
-            .select('id, title')
+            .select('id, title, description')
             .eq('customer_id', workspaceCustomerId)
             .eq('status', 'open')
             .order('title'),
@@ -230,6 +233,43 @@ export function Candidates() {
 
   function getJobTitle(jobId) {
     return jobs.find((job) => job.id === jobId)?.title ?? 'Unknown job'
+  }
+
+  async function handleAssessCandidate(candidate, application) {
+    setAssessingApplication(application.id)
+    setAssessmentErrors((current) => ({
+      ...current,
+      [application.id]: '',
+    }))
+
+    const response = await fetch('/api/assess-cv', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        candidateId: candidate.id,
+        jobId: application.job_id,
+        customerId: workspaceCustomerId,
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      setAssessmentErrors((current) => ({
+        ...current,
+        [application.id]: result.error || 'CV assessment failed',
+      }))
+    } else {
+      setAssessments((current) => ({
+        ...current,
+        [application.id]: result.assessment,
+      }))
+    }
+
+    setAssessingApplication(null)
   }
 
   function startEditing(candidate) {
@@ -584,18 +624,82 @@ export function Candidates() {
                               </select>
                             </div>
 
-                            <button
-                              type="button"
-                              className="candidate-disconnect-button"
-                              onClick={() => handleDisconnect(application.id)}
-                              disabled={
-                                candidateAction === `disconnect-${application.id}`
-                              }
-                            >
-                              {candidateAction === `disconnect-${application.id}`
-                                ? 'Removing...'
-                                : 'Remove'}
-                            </button>
+                            <div className="candidate-application-actions">
+                              <button
+                                type="button"
+                                className="candidate-assess-button"
+                                onClick={() => handleAssessCandidate(candidate, application)}
+                                disabled={
+                                  assessingApplication === application.id ||
+                                  !candidate.cv_url
+                                }
+                              >
+                                {assessingApplication === application.id
+                                  ? 'Assessing...'
+                                  : 'Assess CV'}
+                              </button>
+
+                              <button
+                                type="button"
+                                className="candidate-disconnect-button"
+                                onClick={() => handleDisconnect(application.id)}
+                                disabled={
+                                  candidateAction === `disconnect-${application.id}`
+                                }
+                              >
+                                {candidateAction === `disconnect-${application.id}`
+                                  ? 'Removing...'
+                                  : 'Remove'}
+                              </button>
+                            </div>
+
+                            {assessmentErrors[application.id] ? (
+                              <p className="candidate-assessment-error">
+                                {assessmentErrors[application.id]}
+                              </p>
+                            ) : null}
+
+                            {assessments[application.id] ? (
+                              <div className="candidate-assessment">
+                                <div className="candidate-assessment-header">
+                                  <span>AI match</span>
+                                  <strong>{assessments[application.id].score}/100</strong>
+                                </div>
+
+                                <p>{assessments[application.id].summary}</p>
+
+                                <div className="candidate-assessment-grid">
+                                  <div>
+                                    <h4>Strengths</h4>
+                                    <ul>
+                                      {assessments[application.id].strengths.map(
+                                        (strength) => (
+                                          <li key={strength}>{strength}</li>
+                                        ),
+                                      )}
+                                    </ul>
+                                  </div>
+
+                                  <div>
+                                    <h4>Concerns</h4>
+                                    <ul>
+                                      {assessments[application.id].concerns.map(
+                                        (concern) => (
+                                          <li key={concern}>{concern}</li>
+                                        ),
+                                      )}
+                                    </ul>
+                                  </div>
+                                </div>
+
+                                <span className="candidate-recommendation">
+                                  {assessments[application.id].recommendation.replace(
+                                    '_',
+                                    ' ',
+                                  )}
+                                </span>
+                              </div>
+                            ) : null}
                           </li>
                         ))}
                       </ul>
