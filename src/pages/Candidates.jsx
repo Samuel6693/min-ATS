@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useWorkspace } from '../workspace/workspaceContext'
