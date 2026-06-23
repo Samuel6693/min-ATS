@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import './Admin.css'
 
@@ -52,13 +52,16 @@ export function Admin() {
 
     return (
         <section className="admin-panel">
-            <div>
+            <div className="admin-intro">
                 <p className="eyebrow">Admin</p>
                 <h2>Create user account</h2>
                 <p>
                     Add customer or admin accounts. The API route creates the Supabase
                     auth user and matching profile row.
                 </p>
+                <Link className="admin-back-link" to="/">
+                    Back to dashboard
+                </Link>
             </div>
 
             <form className="admin-form" onSubmit={handleSubmit}>
