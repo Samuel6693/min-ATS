@@ -84,6 +84,11 @@ export function Login() {
                     <button type="submit" disabled={submitting}>
                         {submitting ? 'Signing in...' : 'Sign in'}
                     </button>
+
+                    <p className="demo-note">
+                        Demo project — login required.{' '}
+                        <a href="mailto:samuel.soumi@toby.audio">Contact me</a> if you'd like to explore it.
+                    </p>
                 </form>
             </section>
         </main>
