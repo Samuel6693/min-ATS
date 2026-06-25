@@ -103,6 +103,22 @@
   background: #99f6e4;
 }
 
+.demo-note {
+  font-size: 13px;
+  color: var(--text-muted, #64748b);
+  text-align: center;
+  margin-top: 4px;
+}
+
+.demo-note a {
+  color: #0ea5e9;
+  text-decoration: none;
+}
+
+.demo-note a:hover {
+  text-decoration: underline;
+}
+
 .form-error {
   padding: 10px 12px;
   border: 1px solid #f2b8b5;
